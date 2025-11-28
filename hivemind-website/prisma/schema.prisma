@@ -16,6 +16,30 @@ model User {
   image         String?
   accounts      Account[]
   sessions      Session[]
+  
+  // Demographics
+  age                Int?
+  gender             String?
+  education          String?
+  maritalStatus      String?
+  
+  householdSize      Int?
+  childrenCount      Int?
+  socialSupportLevel String?
+  
+  childhoodMathSkill Int?
+  booksInHome        String?
+  
+  // Health
+  bmi                Float?
+  smoking            String?
+  alcoholConsumption String?
+  mentalHealthScore  Int?
+  
+  // Work
+  employmentStatus   String?
+  incomePercentile   Int?
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
