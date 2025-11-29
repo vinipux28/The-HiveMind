@@ -51,6 +51,7 @@ model Message {
   id        String   @id @default(cuid())
   content   String
   createdAt DateTime @default(now())
+  attachmentUrl String?
 
   senderId    String
   sender      User     @relation("SentMessages", fields: [senderId], references: [id])
