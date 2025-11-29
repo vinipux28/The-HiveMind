@@ -4,7 +4,7 @@ import { auth } from "@/app/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 
-export async function sendMessage(receiverId: string, content: string) {
+export async function sendMessage(receiverId: string, content: string, attachmentUrl?: string) {
   const session = await auth()
   if (!session?.user?.email) return { error: "Unauthorized" }
 
@@ -20,10 +20,11 @@ export async function sendMessage(receiverId: string, content: string) {
       data: {
         senderId: sender.id,
         receiverId: receiverId,
-        content: content,
+        content: content || "",
+        attachmentUrl: attachmentUrl,
       },
     })
-
+    
     revalidatePath("/messages") 
     return { success: true }
   } catch (error) {

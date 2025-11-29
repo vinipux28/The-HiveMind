@@ -19,6 +19,7 @@ export async function uploadImage(formData: FormData) {
         {
           folder: "hivemind-uploads",
           resource_type: "auto",
+          moderation: "webpurify",
         },
         (error, result) => {
           if (error) reject(error)
