@@ -45,6 +45,77 @@ model User {
 
   sentMessages     Message[] @relation("SentMessages")
   receivedMessages Message[] @relation("ReceivedMessages")
+
+  score         Int       @default(0)
+  level         Int       @default(1)
+  
+  milestones    Milestone[]
+  quests        Quest[]
+}
+
+model Milestone {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  status      QuestStatus @default(IN_PROGRESS)
+  progress    Float       @default(0)
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  quests      Quest[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Quest {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  category    String?
+  difficulty  Difficulty @default(MEDIUM)
+  status      QuestStatus @default(IN_PROGRESS)
+  
+  completionPoints Int @default(50)
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  milestoneId String?
+  milestone   Milestone? @relation(fields: [milestoneId], references: [id])
+
+  tasks       Task[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  content     String
+  isCompleted Boolean  @default(false)
+  points      Int      @default(10)
+
+  questId     String
+  quest       Quest    @relation(fields: [questId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum QuestStatus {
+  LOCKED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+  EPIC
 }
 
 model Message {
