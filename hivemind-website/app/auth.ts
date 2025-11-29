@@ -28,7 +28,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string },
-          select: { password: false },
         })
 
         if (!user || !user.password) return null
@@ -37,6 +36,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           credentials.password as string, 
           user.password
         )
+
+        user.password = null // Remove password before returning user object
 
         return passwordsMatch ? user : null
       },
