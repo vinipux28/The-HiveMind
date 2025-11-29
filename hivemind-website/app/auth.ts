@@ -1,6 +1,8 @@
 import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
+import GitHub from "next-auth/providers/github"
+import Google from "next-auth/providers/google"
 import Credentials from "next-auth/providers/credentials"
 import bcrypt from "bcryptjs"
 import { authConfig } from "./auth.config"
@@ -10,6 +12,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
   ...authConfig,
   providers: [
+    GitHub({
+      allowDangerousEmailAccountLinking: true,
+    }),
+    Google({
+      allowDangerousEmailAccountLinking: true,
+    }),
     Credentials({
       credentials: {
         email: {},
@@ -19,7 +27,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!credentials?.email || !credentials?.password) return null
 
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string }
+          where: { email: credentials.email as string },
+          select: { password: false },
         })
 
         if (!user || !user.password) return null

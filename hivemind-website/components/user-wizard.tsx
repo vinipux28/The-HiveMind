@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { motion, AnimatePresence } from "motion/react"
 import { userInfoSchema, type UserInfoValues } from "@/lib/schemas/user-info"
+import { submitOnboarding } from "@/app/actions/onboarding"
 import { Button } from "@/components/ui/button"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -25,6 +25,7 @@ const steps = [
 export function UserInfoWizard() {
   const [currentStep, setCurrentStep] = useState(0)
   const [previousStep, setPreviousStep] = useState(0)
+  const [isPending, startTransition] = useTransition()
   
   const form = useForm<UserInfoValues>({
     resolver: zodResolver(userInfoSchema),
@@ -39,26 +40,15 @@ export function UserInfoWizard() {
     mode: "onChange", 
   })
 
-  // Smooth slide animation variants
   const variants = {
-    enter: (direction: number) => ({
-      x: direction > 0 ? 50 : -50,
-      opacity: 0,
-    }),
-    center: {
-      x: 0,
-      opacity: 1,
-    },
-    exit: (direction: number) => ({
-      x: direction < 0 ? 50 : -50,
-      opacity: 0,
-    }),
+    enter: (direction: number) => ({ x: direction > 0 ? 50 : -50, opacity: 0 }),
+    center: { x: 0, opacity: 1 },
+    exit: (direction: number) => ({ x: direction < 0 ? 50 : -50, opacity: 0 }),
   }
 
   const direction = currentStep > previousStep ? 1 : -1
 
   const nextStep = async () => {
-    // Validate current fields before moving
     const fieldsToValidate = getFieldsForStep(currentStep)
     const isValid = await form.trigger(fieldsToValidate)
     
@@ -80,14 +70,19 @@ export function UserInfoWizard() {
   }
 
   function onSubmit(data: UserInfoValues) {
-    console.log("Final Data Submitted:", data)
-    alert("Data submitted! Check console.")
-    // Here you would call your Server Action to save to Prisma
+    startTransition(async () => {
+      const result = await submitOnboarding(data)
+      
+      if (result?.error) {
+        alert(`Error: ${result.error}`)
+      } else {
+        console.log("Profile updated successfully")
+      }
+    })
   }
 
   return (
     <div className="w-full max-w-2xl mx-auto p-4">
-      {/* Progress Bar */}
       <div className="mb-8 space-y-2">
         <div className="flex justify-between text-sm font-medium text-zinc-500">
           <span>Step {currentStep + 1} of {steps.length}</span>
@@ -125,13 +120,17 @@ export function UserInfoWizard() {
               <Button
                 variant="outline"
                 onClick={prevStep}
-                disabled={currentStep === 0}
+                disabled={currentStep === 0 || isPending}
                 className="w-32"
               >
                 Back
               </Button>
-              <Button onClick={nextStep} className="w-32 bg-zinc-900 text-white hover:bg-zinc-800">
-                {currentStep === steps.length - 1 ? "Finish" : "Next"}
+              <Button 
+                onClick={nextStep} 
+                disabled={isPending}
+                className="w-32 bg-zinc-900 text-white hover:bg-zinc-800"
+              >
+                {isPending ? "Saving..." : (currentStep === steps.length - 1 ? "Finish" : "Next")}
               </Button>
             </CardFooter>
           </Card>
@@ -141,7 +140,6 @@ export function UserInfoWizard() {
   )
 }
 
-// Helper to decide which fields belong to which step for validation
 function getFieldsForStep(step: number): any[] {
   switch (step) {
     case 0: return ["age", "gender", "education", "maritalStatus"]
@@ -153,10 +151,9 @@ function getFieldsForStep(step: number): any[] {
   }
 }
 
-// The actual form fields content
 function renderStepContent(step: number, form: any) {
   switch (step) {
-    case 0: // Demographics
+    case 0: 
       return (
         <>
           <FormField control={form.control} name="age" render={({ field }) => (
@@ -167,7 +164,6 @@ function renderStepContent(step: number, form: any) {
               </FormControl>
             </FormItem>
           )} />
-
           <FormField control={form.control} name="gender" render={({ field }) => (
             <FormItem>
               <FormLabel>Gender</FormLabel>
@@ -182,13 +178,12 @@ function renderStepContent(step: number, form: any) {
               </Select>
             </FormItem>
           )} />
-          
            <div className="grid grid-cols-2 gap-4">
             <FormField control={form.control} name="education" render={({ field }) => (
                 <FormItem>
                 <FormLabel>Education</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Highest degree" /></SelectTrigger></FormControl>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Degree" /></SelectTrigger></FormControl>
                     <SelectContent>
                     <SelectItem value="high_school">High School</SelectItem>
                     <SelectItem value="bachelors">Bachelor's</SelectItem>
@@ -198,12 +193,11 @@ function renderStepContent(step: number, form: any) {
                 </Select>
                 </FormItem>
             )} />
-
             <FormField control={form.control} name="maritalStatus" render={({ field }) => (
                 <FormItem>
                 <FormLabel>Marital Status</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger></FormControl>
                     <SelectContent>
                     <SelectItem value="single">Single</SelectItem>
                     <SelectItem value="married">Married</SelectItem>
@@ -217,7 +211,7 @@ function renderStepContent(step: number, form: any) {
         </>
       )
 
-    case 1: // Household
+    case 1: 
       return (
         <>
            <FormField control={form.control} name="householdSize" render={({ field }) => (
@@ -229,23 +223,22 @@ function renderStepContent(step: number, form: any) {
               <FormDescription>Includes yourself.</FormDescription>
             </FormItem>
           )} />
-
           <FormField control={form.control} name="socialSupportLevel" render={({ field }) => (
             <FormItem className="space-y-3">
-              <FormLabel>How strong is your social support network?</FormLabel>
+              <FormLabel>Social Support Network</FormLabel>
               <FormControl>
                 <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1">
                   <FormItem className="flex items-center space-x-3 space-y-0">
                     <FormControl><RadioGroupItem value="low" /></FormControl>
-                    <FormLabel className="font-normal">Low (I often feel alone)</FormLabel>
+                    <FormLabel className="font-normal">Low (Often feel alone)</FormLabel>
                   </FormItem>
                   <FormItem className="flex items-center space-x-3 space-y-0">
                     <FormControl><RadioGroupItem value="medium" /></FormControl>
-                    <FormLabel className="font-normal">Medium (I have some help)</FormLabel>
+                    <FormLabel className="font-normal">Medium (Some help)</FormLabel>
                   </FormItem>
                   <FormItem className="flex items-center space-x-3 space-y-0">
                     <FormControl><RadioGroupItem value="high" /></FormControl>
-                    <FormLabel className="font-normal">High (Strong community/family)</FormLabel>
+                    <FormLabel className="font-normal">High (Strong community)</FormLabel>
                   </FormItem>
                 </RadioGroup>
               </FormControl>
@@ -254,7 +247,7 @@ function renderStepContent(step: number, form: any) {
         </>
       )
     
-    case 2: // Childhood
+    case 2: 
       return (
         <div className="space-y-8">
             <FormField control={form.control} name="booksInHome" render={({ field }) => (
@@ -271,21 +264,20 @@ function renderStepContent(step: number, form: any) {
                 </Select>
                 </FormItem>
             )} />
-
             <FormField control={form.control} name="childhoodMathSkill" render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-lg">Math Skills at Age 10 (1-10)</FormLabel>
+              <FormLabel className="text-lg">Math Skills at Age 10: {field.value}</FormLabel>
               <div className="flex items-center gap-4">
-                <span className="text-sm text-muted-foreground">Struggled</span>
+                <span className="text-sm">Struggled</span>
                 <Slider min={1} max={10} step={1} defaultValue={[field.value || 5]} onValueChange={(val) => field.onChange(val[0])} className="flex-1" />
-                <span className="text-sm text-muted-foreground">Genius</span>
+                <span className="text-sm">Genius</span>
               </div>
             </FormItem>
           )} />
         </div>
       )
 
-    case 3: // Health
+    case 3: 
       return (
         <>
            <div className="grid grid-cols-2 gap-8">
@@ -302,7 +294,6 @@ function renderStepContent(step: number, form: any) {
                 </Select>
                 </FormItem>
             )} />
-
              <FormField control={form.control} name="alcoholConsumption" render={({ field }) => (
                 <FormItem>
                 <FormLabel>Alcohol</FormLabel>
@@ -317,10 +308,9 @@ function renderStepContent(step: number, form: any) {
                 </FormItem>
             )} />
            </div>
-
            <FormField control={form.control} name="mentalHealthScore" render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-lg">Recent Mood (0 = Happy, 10 = Depressed)</FormLabel>
+              <FormLabel className="text-lg">Recent Mood (0-10)</FormLabel>
               <div className="flex items-center gap-4">
                 <span className="text-2xl">😊</span>
                 <Slider min={0} max={10} step={1} defaultValue={[field.value]} onValueChange={(val) => field.onChange(val[0])} className="flex-1" />
@@ -332,14 +322,14 @@ function renderStepContent(step: number, form: any) {
         </>
       )
 
-    case 4: // Work & Money
+    case 4: 
         return (
             <>
               <FormField control={form.control} name="employmentStatus" render={({ field }) => (
                 <FormItem>
                 <FormLabel>Current Employment</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl><SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger></FormControl>
+                    <FormControl><SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger></FormControl>
                     <SelectContent>
                     <SelectItem value="employed">Employed Full-Time</SelectItem>
                     <SelectItem value="part_time">Part-Time</SelectItem>
@@ -350,14 +340,12 @@ function renderStepContent(step: number, form: any) {
                 </Select>
                 </FormItem>
               )} />
-
             <FormField control={form.control} name="incomePercentile" render={({ field }) => (
                 <FormItem>
-                <FormLabel className="text-lg">Household Income Percentile: Top {100 - field.value}%</FormLabel>
+                <FormLabel className="text-lg">Income Percentile: Top {100 - field.value}%</FormLabel>
                 <FormControl>
                     <Slider min={1} max={99} step={1} defaultValue={[field.value]} onValueChange={(val) => field.onChange(val[0])} />
                 </FormControl>
-                <FormDescription>0 = Lowest Income, 100 = Highest Income</FormDescription>
                 </FormItem>
             )} />
             </>
