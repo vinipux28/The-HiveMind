@@ -33,9 +33,20 @@ export async function register(prevState: any, formData: FormData) {
             },
         })
 
+        await signIn("credentials", {
+            email,
+            password,
+            redirectTo: "/dashboard",
+        })
+
         return { success: "User created!" }
     } catch (error) {
-        return { error: "Something went wrong" }
+        if (error instanceof AuthError) {
+             return { error: "Something went wrong during login" }
+        }
+
+        // If it's a redirect error (success), re-throw it so Next.js handles it
+        throw error
     }
 }
 

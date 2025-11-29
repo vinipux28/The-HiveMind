@@ -46,10 +46,10 @@ export async function Navbar() {
             <UserNav user={user} />
           ) : (
             <div className="flex gap-2">
-                <Link href="/login">
+                <Link href="/auth/login">
                     <Button variant="ghost">Log in</Button>
                 </Link>
-                <Link href="/register">
+                <Link href="/auth/register">
                     <Button>Sign up</Button>
                 </Link>
             </div>
