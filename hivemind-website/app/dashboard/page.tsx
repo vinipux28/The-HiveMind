@@ -6,7 +6,7 @@ export default async function Home() {
     const session = await auth()
     console.log("DASHBOARD SESSION:", session)
 
-    if (!session?.user?.email) redirect("/login")
+    if (!session?.user?.email) redirect("/auth/login")
 
     const user = await prisma.user.findUnique({
         where: { email: session.user.email }
