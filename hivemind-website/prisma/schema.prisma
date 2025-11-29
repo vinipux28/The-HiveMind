@@ -51,13 +51,20 @@ model Message {
   id        String   @id @default(cuid())
   content   String
   createdAt DateTime @default(now())
-  attachmentUrl String?
+  attachments Attachment[]
 
   senderId    String
   sender      User     @relation("SentMessages", fields: [senderId], references: [id])
 
   receiverId  String
   receiver    User     @relation("ReceivedMessages", fields: [receiverId], references: [id])
+}
+
+model Attachment {
+  id        String  @id @default(cuid())
+  url       String
+  messageId String
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 }
 
 model Account {

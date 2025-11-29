@@ -2,36 +2,42 @@
 
 import cloudinary from "@/lib/cloudinary"
 
-export async function uploadImage(formData: FormData) {
-  const file = formData.get("file") as File
+export async function uploadImages(formData: FormData) {
+  const files = formData.getAll("file") as File[]
   
-  if (!file) {
-    return { error: "No file provided" }
+  if (!files || files.length === 0) {
+    return { error: "No files provided" }
   }
 
-  // Convert file to buffer for streaming
-  const arrayBuffer = await file.arrayBuffer()
-  const buffer = new Uint8Array(arrayBuffer)
+  const uploadPromises = files.map(async (file) => {
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = new Uint8Array(arrayBuffer)
 
-  try {
-    const result = await new Promise<any>((resolve, reject) => {
+    return new Promise<string>((resolve, reject) => {
       cloudinary.uploader.upload_stream(
         {
           folder: "hivemind-uploads",
           resource_type: "auto",
           moderation: "webpurify",
         },
-        (error, result) => {
+        // FIX: Add ': any' to result so TS stops complaining
+        (error, result: any) => {
           if (error) reject(error)
-          else resolve(result)
+          else if (result?.moderation?.[0]?.status === "rejected") {
+             cloudinary.uploader.destroy(result.public_id)
+             reject(new Error("Image rejected"))
+          }
+          else resolve(result!.secure_url)
         }
       ).end(buffer)
     })
+  })
 
-    return { url: result.secure_url }
-
+  try {
+    const urls = await Promise.all(uploadPromises)
+    return { urls }
   } catch (error) {
-    console.error("Upload failed:", error)
-    return { error: "Upload failed" }
+    console.error("Upload error:", error)
+    return { error: "One or more images failed to upload" }
   }
 }

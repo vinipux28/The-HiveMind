@@ -4,7 +4,7 @@ import { auth } from "@/app/auth"
 import { prisma } from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 
-export async function sendMessage(receiverId: string, content: string, attachmentUrl?: string) {
+export async function sendMessage(receiverId: string, content: string, attachmentUrls: string[] = []) {
   const session = await auth()
   if (!session?.user?.email) return { error: "Unauthorized" }
 
@@ -20,8 +20,10 @@ export async function sendMessage(receiverId: string, content: string, attachmen
       data: {
         senderId: sender.id,
         receiverId: receiverId,
-        content: content || "",
-        attachmentUrl: attachmentUrl,
+        content: content,
+        attachments: {
+          create: attachmentUrls.map(url => ({ url }))
+        }
       },
     })
     
@@ -56,7 +58,6 @@ export async function getUsersToChatWith() {
   })
 }
 
-// 3. Get messages between current user and selected user
 export async function getMessages(otherUserId: string) {
   const session = await auth()
   if (!session?.user?.email) return []
@@ -75,12 +76,11 @@ export async function getMessages(otherUserId: string) {
         { senderId: otherUserId, receiverId: currentUser.id },
       ],
     },
-    orderBy: {
-      createdAt: 'asc',
-    },
+    orderBy: { createdAt: 'asc' },
     include: {
         sender: { select: { name: true, image: true } },
-        receiver: { select: { name: true, image: true } }
+        receiver: { select: { name: true, image: true } },
+        attachments: true
     }
   })
 

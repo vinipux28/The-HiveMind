@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useRef, useEffect, useTransition } from "react"
+import { useState, useRef, useEffect } from "react"
 import { sendMessage } from "@/app/actions/chat"
-import { uploadImage } from "@/app/actions/upload"
+import { uploadImages } from "@/app/actions/upload"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
-import { Send, User, Image as ImageIcon, Loader2, X } from "lucide-react"
+import { Send, User, Loader2, X, Paperclip } from "lucide-react"
 
 type ChatUser = {
   id: string
@@ -19,7 +19,7 @@ type ChatUser = {
 type Message = {
   id: string
   content: string | null
-  attachmentUrl?: string | null
+  attachments: { url: string }[]
   createdAt: Date
   senderId: string
   sender: { name: string | null, image: string | null }
@@ -27,8 +27,6 @@ type Message = {
 
 interface ChatInterfaceProps {
   users: ChatUser[]
-  initialMessages?: Message[]
-  currentUserId?: string
 }
 
 export function ChatInterface({ users }: ChatInterfaceProps) {
@@ -37,9 +35,8 @@ export function ChatInterface({ users }: ChatInterfaceProps) {
   const [currentUserId, setCurrentUserId] = useState<string>("")
   const [inputText, setInputText] = useState("")
   
-  // New state for local file handling
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [previewUrls, setPreviewUrls] = useState<string[]>([])
   const [isSending, setIsSending] = useState(false)
   
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -47,7 +44,7 @@ export function ChatInterface({ users }: ChatInterfaceProps) {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, previewUrl]) // Scroll when preview appears too
+  }, [messages, previewUrls])
 
   useEffect(() => {
     if (!selectedUser) return
@@ -57,56 +54,53 @@ export function ChatInterface({ users }: ChatInterfaceProps) {
         const result = await getMessages(selectedUser.id)
         if (Array.isArray(result)) return 
         
-        setMessages(result.messages)
+        setMessages(result.messages as unknown as Message[])
         setCurrentUserId(result.currentUserId)
     }
 
     fetchMsgs() 
     const interval = setInterval(fetchMsgs, 3000)
-
     return () => clearInterval(interval)
   }, [selectedUser])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      const file = e.target.files[0]
-      setSelectedFile(file)
-      // Create a local URL for preview
-      const url = URL.createObjectURL(file)
-      setPreviewUrl(url)
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files)
+      setSelectedFiles(prev => [...prev, ...newFiles])
+      
+      const newUrls = newFiles.map(file => URL.createObjectURL(file))
+      setPreviewUrls(prev => [...prev, ...newUrls])
     }
   }
 
-  const clearFile = () => {
-    setSelectedFile(null)
-    setPreviewUrl(null)
-    if (fileInputRef.current) fileInputRef.current.value = ""
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index))
+    setPreviewUrls(prev => prev.filter((_, i) => i !== index))
   }
 
   const handleSend = async () => {
     if (!selectedUser) return
-    if (!inputText.trim() && !selectedFile) return
+    if (!inputText.trim() && selectedFiles.length === 0) return
 
     setIsSending(true)
 
     try {
-      let finalAttachmentUrl = null
+      let uploadedUrls: string[] = []
 
-      // 1. Upload Image if exists
-      if (selectedFile) {
+      if (selectedFiles.length > 0) {
         const formData = new FormData()
-        formData.append("file", selectedFile)
-        const uploadRes = await uploadImage(formData)
-        if (uploadRes.url) {
-            finalAttachmentUrl = uploadRes.url
+        selectedFiles.forEach(file => formData.append("file", file))
+        
+        const uploadRes = await uploadImages(formData)
+        if (uploadRes.urls) {
+            uploadedUrls = uploadRes.urls
         }
       }
 
-      // 2. Optimistic Update
       const optimisicMsg: Message = {
         id: Date.now().toString(),
         content: inputText,
-        attachmentUrl: finalAttachmentUrl, // Use real URL
+        attachments: uploadedUrls.map(url => ({ url })),
         createdAt: new Date(),
         senderId: currentUserId,
         sender: { name: "Me", image: null } 
@@ -114,12 +108,12 @@ export function ChatInterface({ users }: ChatInterfaceProps) {
       
       setMessages(prev => [...prev, optimisicMsg])
       
-      // 3. Send to DB
-      await sendMessage(selectedUser.id, inputText, finalAttachmentUrl || undefined)
+      await sendMessage(selectedUser.id, inputText, uploadedUrls)
 
-      // 4. Cleanup
       setInputText("")
-      clearFile()
+      setSelectedFiles([])
+      setPreviewUrls([])
+      if (fileInputRef.current) fileInputRef.current.value = ""
 
     } catch (error) {
       console.error("Failed to send", error)
@@ -130,10 +124,9 @@ export function ChatInterface({ users }: ChatInterfaceProps) {
 
   return (
     <div className="flex h-[calc(100vh-120px)] w-full gap-4 p-4">
+      {/* Sidebar */}
       <Card className="w-1/3 flex flex-col overflow-hidden">
-        <div className="p-4 border-b bg-zinc-50 font-bold">
-            People
-        </div>
+        <div className="p-4 border-b bg-zinc-50 font-bold">People</div>
         <div className="flex-1 overflow-y-auto p-2"> 
           <div className="flex flex-col gap-1">
             {users.map(user => (
@@ -148,7 +141,7 @@ export function ChatInterface({ users }: ChatInterfaceProps) {
               >
                 <Avatar className="h-10 w-10 border">
                   <AvatarImage src={user.image || ""} />
-                  <AvatarFallback className="text-zinc-900">{user.name?.[0] || "?"}</AvatarFallback>
+                  <AvatarFallback className="text-zinc-900">{user.name?.[0]}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1 overflow-hidden">
                   <p className="font-medium truncate">{user.name || "Unknown"}</p>
@@ -162,6 +155,7 @@ export function ChatInterface({ users }: ChatInterfaceProps) {
         </div>
       </Card>
 
+      {/* Main Chat */}
       <Card className="flex-1 flex flex-col overflow-hidden shadow-xl">
         {selectedUser ? (
           <>
@@ -181,24 +175,19 @@ export function ChatInterface({ users }: ChatInterfaceProps) {
                 {messages.map((msg) => {
                   const isMe = msg.senderId === currentUserId
                   return (
-                    <div
-                      key={msg.id}
-                      className={`flex ${isMe ? "justify-end" : "justify-start"}`}
-                    >
-                      <div
-                        className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm ${
-                          isMe
-                            ? "bg-blue-600 text-white rounded-br-none"
-                            : "bg-zinc-200 text-zinc-900 rounded-bl-none"
-                        }`}
-                      >
-                        {msg.attachmentUrl && (
-                          <img 
-                            src={msg.attachmentUrl} 
-                            alt="attachment" 
-                            className="rounded-lg mb-2 max-h-60 w-auto object-cover border border-black/10" 
-                          />
+                    <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                      <div className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm ${
+                          isMe ? "bg-blue-600 text-white rounded-br-none" : "bg-zinc-200 text-zinc-900 rounded-bl-none"
+                        }`}>
+                        
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <div className={`grid gap-1 mb-2 ${msg.attachments.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                            {msg.attachments.map((att, i) => (
+                                <img key={i} src={att.url} alt="attachment" className="rounded-lg object-cover w-full h-auto max-h-48 border border-black/10" />
+                            ))}
+                          </div>
                         )}
+                        
                         {msg.content && <p>{msg.content}</p>}
                         <p className={`text-[10px] mt-1 opacity-70 ${isMe ? "text-blue-100" : "text-zinc-500"}`}>
                            {new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
@@ -211,28 +200,32 @@ export function ChatInterface({ users }: ChatInterfaceProps) {
               </div>
             </div>
 
-            {/* Input Area */}
             <div className="p-4 border-t bg-white flex flex-col gap-2">
-              
               {/* Preview Area */}
-              {previewUrl && (
-                <div className="relative w-fit mb-2">
-                  <img src={previewUrl} alt="Preview" className="h-20 w-auto rounded-md border" />
-                  <button 
-                    onClick={clearFile}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 shadow-sm"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+              {previewUrls.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                    {previewUrls.map((url, index) => (
+                        <div key={index} className="relative shrink-0">
+                            <img src={url} alt="Preview" className="h-20 w-auto rounded-md border" />
+                            <button 
+                                onClick={() => removeFile(index)}
+                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600 shadow-sm"
+                            >
+                                <X className="h-3 w-3" />
+                            </button>
+                        </div>
+                    ))}
                 </div>
               )}
 
+              {/* Input Bar */}
               <div className="flex gap-2 items-center">
                 <input 
                   type="file" 
                   ref={fileInputRef} 
                   className="hidden" 
                   accept="image/*"
+                  multiple 
                   onChange={handleFileSelect}
                 />
                 <Button 
@@ -242,7 +235,7 @@ export function ChatInterface({ users }: ChatInterfaceProps) {
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isSending}
                 >
-                  <ImageIcon className="h-4 w-4" />
+                  <Paperclip className="h-4 w-4" />
                 </Button>
                 
                 <Input 
@@ -257,7 +250,7 @@ export function ChatInterface({ users }: ChatInterfaceProps) {
                   onClick={handleSend} 
                   size="icon" 
                   className="rounded-full shrink-0" 
-                  disabled={isSending || (!inputText.trim() && !selectedFile)}
+                  disabled={isSending || (!inputText.trim() && selectedFiles.length === 0)}
                 >
                   {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </Button>
