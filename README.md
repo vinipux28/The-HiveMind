@@ -1,67 +1,99 @@
-# 🧠 HiveMind: AI-Augmented Social Development Platform
+# 🧠 HiveMind: Connect. Conquer. Thrive.
 
-**Project Overview:** A structured, gamified social media platform leveraging artificial intelligence to guide users through personal challenges via actionable milestones and peer connectivity.
+## 🌟 Project Overview
 
----
+**HiveMind** is a unique, supportive social media platform designed to connect individuals facing similar life challenges. It moves beyond passive communication by integrating an **AI companion** that actively guides users through their personal struggles, transforming difficulties into achievable goals.
 
-## I. Problem Statement & Value Proposition
-
-### 1.1 The Challenge
-Contemporary digital platforms often foster isolation or comparison, lacking mechanisms for guided, practical self-improvement. Users facing complex personal challenges—from career development to behavioral change—frequently lack access to structured, affordable coaching and struggle to find highly relevant peer support.
-
-### 1.2 The Solution: HiveMind
-HiveMind transforms personal struggles into communal, measurable achievements. By utilizing **intelligent personalization** and **gamification**, the platform provides:
-* **Structured Progression:** Replacing vague goals with definitive, AI-generated "Quests."
-* **Validated Accountability:** Leveraging machine learning for objective proof analysis.
-* **Contextualized Community:** Facilitating connections based on shared, specific life challenges.
+Our mission is to foster a community where shared experience becomes a catalyst for **positive change**, turning isolation into collaboration.
 
 ---
 
-## II. Core Features
+## 🔑 Key Features
 
-* **Peer-to-Peer Mentorship:** Facilitates private and group communication between users who have categorized themselves under the same challenge tags (e.g., 'Entry-Level Coding,' 'Anxiety Management').
-* **AI Coach Engine:** A proprietary chatbot that functions as a developmental guide, generating **personalized Quests** (actionable tasks) and recommending high-compatibility peer connections.
-* **Gamification and Progression:** Implements a **Leaderboard System** where users earn points upon completing Quests, driving motivation through friendly competition.
-* **ML-Powered Verification:** Quests require users to submit **image or video evidence**. The platform's AI validates this proof of completion before awarding points, ensuring data integrity and user accountability.
-
----
-
-## III. Technology Stack & Prerequisites
-
-HiveMind is architected using a modern, scalable component structure designed for rapid deployment and data processing.
-
-### 3.1 Required Environment
-
-To run this project locally, the following major dependencies must be installed and configured:
-
-* **Node.js (LTS recommended):** Primary runtime for the server and front-end application.
-* **PostgreSQL:** The secure, transactional database management system for persistent data storage.
-* **Python (3.x):** Used specifically for the implementation of the AI/Machine Learning verification scripts.
+* **Peer-to-Peer Support Chats:** Connect with other users who share the same or similar life problems in a private, supportive environment.
+* **AI Companion & Quests:** An integrated AI chatbot provides personalized guidance by:
+    * Issuing **Quests** (small, actionable steps) and **Milestones** (larger goals) relevant to the user's specific challenges.
+    * Offering tailored **Suggestions for Contact** with other users based on high-similarity profiles, facilitating meaningful connections.
+* **Proof-of-Completion System:** Quests are verified by the user uploading **image or video proof**, which is then analyzed by the AI to ensure completion.
+* **Point & Gamification:** A **Point System** rewards users with points for successfully completing quests and milestones, encouraging progress, persistence, and engagement.
 
 ---
 
-## IV. Local Installation and Execution
+## 🛠 Prerequisites
 
-Follow these instructions to set up and execute the HiveMind application environment:
+To run HiveMind on your **local machine**, you need to have the following core technologies installed:
 
-### 4.1 Repository Initialization
-1.  **Clone the Source:**
+| Technology | Purpose |
+| :--- | :--- |
+| **Node.js** | Backend application server and package management. |
+| **Python** | AI/Machine Learning components and core logic. |
+| **PostgreSQL** | Primary relational database for user, quest, and proof data. |
+
+Additionally, you will need to install the specific **Node.js and Python libraries** as listed in the project's `package.json` and `requirements.txt` files, respectively.
+
+---
+
+## ⚙️ Installation (Local Host Setup)
+
+Follow these steps to set up and run the HiveMind project locally.
+
+### 1. Database Setup (PostgreSQL)
+
+1.  **Install PostgreSQL:** Download and install the appropriate version for your operating system from the [official PostgreSQL website](https://www.postgresql.org/download/).
+2.  **Create Database:** Use the `psql` command-line tool or a GUI client (like pgAdmin) to create the project database.
     ```bash
-    git clone [https://github.com/YourTeam/hivemind.git](https://github.com/YourTeam/hivemind.git)
-    cd hivemind
+    CREATE DATABASE hivemind_db;
     ```
-2.  **Install Dependencies:** Run the package manager in the root directory. This command is configured to install both Node.js (via `npm`) and Python dependencies (via `pip`).
+3.  **Configuration:** Update the database connection settings in the appropriate configuration file (e.g., a `.env` file) to match your local PostgreSQL credentials (username, password, and database name `hivemind_db`).
+
+### 2. Backend Setup (Node.js)
+
+1.  **Install Node.js:** Ensure you have **Node.js (LTS recommended)** installed.
+2.  **Navigate to Backend Directory:** Open your terminal and change the directory to the project's backend folder.
+3.  **Install Dependencies:** Install all required Node.js libraries.
     ```bash
     npm install
-    pip install -r requirements.txt
+    ```
+4.  **Run Backend Server:** Start the Node.js server.
+    ```bash
+    npm start
     ```
 
-### 4.2 Database Configuration
-1.  Ensure your **PostgreSQL server instance** is active.
-2.  Create the required database: `CREATE DATABASE hivemind;`.
-3.  Set up the necessary **environment variables** (e.g., in a `.env` file) to include the correct database connection URI, host, and port.
+### 3. AI/ML Setup (Python)
 
-### 4.3 Application Startup
-Execute the combined development script, which starts the backend server, connects the AI modules, and launches the frontend interface concurrently:
-```bash
-npm run dev
+1.  **Install Python:** Ensure you have **Python 3.x** installed.
+2.  **Navigate to Python Directory:** Change the directory to the folder containing your AI/Python components.
+3.  **Create Virtual Environment (Recommended):**
+    ```bash
+    python -m venv venv
+    source venv/bin/activate # On Linux/macOS
+    # .\venv\Scripts\activate # On Windows
+    ```
+4.  **Install Dependencies:** Install all required Python libraries.
+    ```bash
+    pip install -r requirements.txt
+    ```
+5.  **Run Python AI Service:** Start the service, which may run as a separate process or be called by the Node.js backend.
+    ```bash
+    python ai_service.py # Replace with the actual startup file name
+    ```
+
+### 4. Accessing HiveMind
+
+Once all services are running, you should be able to access the HiveMind application in your web browser, typically at:
+
+> 🌐 **`http://localhost:3000`** (or the port specified in your Node.js configuration)
+
+---
+
+## 🧑‍💻 Team
+
+The development of HiveMind is a collaborative effort by the following dedicated team members:
+
+| Name | Role | GitHub |
+| :--- | :--- | :--- |
+| **Oleksandur Vinichenko** | Front-End and Back-End Developer | @vinipux28 |
+| **Yuan Tomov** | AI/ML Specialist, Back-End Developer | @YVTomov22 |
+| **Tsvetan Zhekov** | AI/ML Specialist, Back-End Developer | @TPZhekov22 |
+| **Kaloyan Petrov** | UX/UI Designer. Frontend Developer | @KSPetrov22 |
+| **Anton Babev** | QA, UX/UI Designer | @AKBabev22 |
