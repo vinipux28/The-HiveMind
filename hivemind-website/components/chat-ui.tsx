@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { jsonrepair } from 'jsonrepair';
+import ReactMarkdown from 'react-markdown';
 import { Send, User, Bot, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from "@/lib/utils"; 
 import { analyzeAgentAction } from '@/app/actions/ai-chat'; 
@@ -11,7 +12,6 @@ type ChatMessage = {
     sender: 'user' | 'ai' | 'system';
     text: string;
     isStreaming?: boolean;
-    // New field to hold the structured proposal data if available
     proposalData?: any; 
 };
 
@@ -74,11 +74,9 @@ export default function ChatUI({ userId }: { userId: string }) {
                                         const newLog = [...prev];
                                         const aiIndex = newLog.length - 1;
                                         if (newLog[aiIndex]) {
-                                            // Update text message
                                             if (repairedJson.message) {
                                                 newLog[aiIndex].text = repairedJson.message;
                                             }
-                                            // Update structured data (milestones tree)
                                             if (repairedJson.milestones && repairedJson.milestones.length > 0) {
                                                 newLog[aiIndex].proposalData = repairedJson;
                                             }
@@ -130,7 +128,6 @@ export default function ChatUI({ userId }: { userId: string }) {
                 
                 {chatLog.map((msg, index) => (
                     <div key={index} className={cn("flex flex-col gap-2", msg.sender === 'user' ? "items-end" : "items-start")}>
-                        {/* Chat Bubble Row */}
                         <div className={cn("flex gap-3 max-w-[90%]", msg.sender === 'user' ? "flex-row-reverse" : "flex-row")}>
                             <div className={cn(
                                 "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
@@ -147,7 +144,23 @@ export default function ChatUI({ userId }: { userId: string }) {
                                 msg.sender === 'system' ? "bg-red-50 text-red-800 border border-red-100" :
                                 "bg-white border border-zinc-200 text-zinc-800 rounded-tl-none"
                             )}>
-                                <div className="whitespace-pre-wrap leading-relaxed">{msg.text}</div>
+                                {/* --- CHANGED SECTION START --- */}
+                                <div className="leading-relaxed">
+                                    <ReactMarkdown
+                                        components={{
+                                            // Override basic elements to match Tailwind styles
+                                            p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                                            ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-2 space-y-1" {...props} />,
+                                            ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-2 space-y-1" {...props} />,
+                                            li: ({node, ...props}) => <li className="pl-1" {...props} />,
+                                            strong: ({node, ...props}) => <span className="font-bold" {...props} />,
+                                        }}
+                                    >
+                                        {msg.text}
+                                    </ReactMarkdown>
+                                </div>
+                                {/* --- CHANGED SECTION END --- */}
+
                                 {msg.isStreaming && (
                                     <div className="mt-2 flex items-center gap-1 text-zinc-400">
                                         <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
@@ -158,7 +171,6 @@ export default function ChatUI({ userId }: { userId: string }) {
                             </div>
                         </div>
 
-                        {/* Proposal Cards (Only for AI messages when data exists) */}
                         {msg.sender === 'ai' && msg.proposalData && !msg.isStreaming && (
                             <div className="w-full max-w-[90%] pl-11">
                                 <RoadmapProposal data={msg.proposalData} />

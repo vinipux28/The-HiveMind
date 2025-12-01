@@ -1,11 +1,12 @@
 import { auth } from "@/app/auth"
 import { prisma } from "@/lib/prisma"
 import { notFound } from "next/navigation"
+import Link from "next/link" // <--- Import Link
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { FollowButton } from "@/components/follow-button"
 import { Badge } from "@/components/ui/badge"
-import { Trophy, Calendar, Map, Users } from "lucide-react"
+import { Trophy, Calendar, Map, Users, MessageSquare } from "lucide-react" // <--- Import MessageSquare
 
 // Next.js 15: params is a Promise
 export default async function PublicProfilePage(props: { params: Promise<{ username: string }> }) {
@@ -22,10 +23,9 @@ export default async function PublicProfilePage(props: { params: Promise<{ usern
           followedBy: true,
           following: true,
           milestones: true,
-          quests: true // Total quests assigned
+          quests: true 
         }
       },
-      // Only fetch COMPLETED quests for the "Trophy Case"
       quests: {
         where: { status: "COMPLETED" },
         take: 5,
@@ -46,7 +46,6 @@ export default async function PublicProfilePage(props: { params: Promise<{ usern
         where: { email: session.user.email },
         include: { following: true }
     })
-    // Check if the current user is following the profile user
     isFollowing = currentUser?.following.some(f => f.followingId === user.id) ?? false
   }
 
@@ -64,9 +63,19 @@ export default async function PublicProfilePage(props: { params: Promise<{ usern
                 <AvatarFallback className="text-2xl font-bold bg-zinc-100">{user.name?.[0]}</AvatarFallback>
               </Avatar>
               
-              {/* Follow Button Action */}
+              {/* Actions Area: Message & Follow */}
               {!isOwnProfile && session?.user && (
-                 <div className="mb-2">
+                 <div className="mb-2 flex gap-2">
+                    {/* Message Button */}
+                    <Link 
+                        href={`/messages?username=${user.username}`}
+                        className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-zinc-700 bg-white border border-zinc-300 rounded-md hover:bg-zinc-50 transition-colors shadow-sm"
+                    >
+                        <MessageSquare className="w-4 h-4" />
+                        Message
+                    </Link>
+
+                    {/* Follow Button */}
                     <FollowButton targetUserId={user.id} initialIsFollowing={isFollowing} />
                  </div>
               )}

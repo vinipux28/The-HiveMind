@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useLayoutEffect } from "react"
+import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import { sendMessage, deleteMessage, editMessage } from "@/app/actions/chat"
 import { uploadImages } from "@/app/actions/upload"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -10,7 +11,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu"
 import { 
-  Send, User, Loader2, X, Paperclip, Download, 
+  Send, User, Loader2, X, Paperclip, 
   MoreVertical, Pencil, Trash2, Check 
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -20,6 +21,7 @@ import { AnimatePresence, motion } from "motion/react"
 type ChatUser = {
   id: string
   name: string | null
+  username: string | null
   email: string | null
   image: string | null
 }
@@ -43,6 +45,11 @@ export function ChatInterface({ users }: ChatInterfaceProps) {
   const [currentUserId, setCurrentUserId] = useState<string>("")
   const [inputText, setInputText] = useState("")
   
+  // Navigation Hooks
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [previewUrls, setPreviewUrls] = useState<string[]>([])
   const [isSending, setIsSending] = useState(false)
@@ -58,6 +65,30 @@ export function ChatInterface({ users }: ChatInterfaceProps) {
   
   const isUserSwitch = useRef(false)
   const isAtBottomRef = useRef(true)
+
+  // --- URL Query Param Logic ---
+  useEffect(() => {
+    const usernameParam = searchParams.get('username')
+    
+    // If there is a username param and we haven't selected that user yet
+    if (usernameParam && users.length > 0) {
+        const targetUser = users.find(u => u.username === usernameParam)
+        
+        if (targetUser && targetUser.id !== selectedUser?.id) {
+            setSelectedUser(targetUser)
+        }
+    }
+  }, [searchParams, users, selectedUser])
+
+  // Wrapper to handle user selection and URL update
+  const handleUserSelect = (user: ChatUser) => {
+    setSelectedUser(user)
+    if (user.username) {
+        router.replace(`${pathname}?username=${user.username}`)
+    } else {
+        router.replace(pathname)
+    }
+  }
 
   // 1. Scroll Logic
   const handleScroll = () => {
@@ -216,11 +247,12 @@ export function ChatInterface({ users }: ChatInterfaceProps) {
               {users.map(user => (
                 <button
                   key={user.id}
-                  onClick={() => setSelectedUser(user)}
+                  onClick={() => handleUserSelect(user)}
                   className={cn("flex items-center gap-3 p-3 w-full rounded-lg text-left transition-all", selectedUser?.id === user.id ? "bg-white shadow-sm ring-1 ring-zinc-200" : "hover:bg-zinc-200/50")}
                 >
                   <Avatar className="h-10 w-10 border border-zinc-200">
-                    <AvatarImage src={user.image || ""} />
+                    {/* FIX: Use undefined instead of "" to prevent browser network error */}
+                    <AvatarImage src={user.image || undefined} />
                     <AvatarFallback>{user.name?.[0]}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 overflow-hidden">
@@ -239,7 +271,8 @@ export function ChatInterface({ users }: ChatInterfaceProps) {
               {/* Header */}
               <div className="h-16 px-6 border-b border-zinc-200 flex items-center gap-3 bg-white/80 backdrop-blur-md sticky top-0 z-10">
                   <Avatar className="h-9 w-9 border border-zinc-200">
-                      <AvatarImage src={selectedUser.image || ""} />
+                      {/* FIX: Use undefined instead of "" */}
+                      <AvatarImage src={selectedUser.image || undefined} />
                       <AvatarFallback>{selectedUser.name?.[0]}</AvatarFallback>
                   </Avatar>
                   <span className="font-bold text-zinc-900">{selectedUser.name}</span>
@@ -301,10 +334,10 @@ export function ChatInterface({ users }: ChatInterfaceProps) {
                                         "px-4 py-2 text-sm shadow-sm relative",
                                         isMe ? "bg-blue-600 text-white rounded-2xl rounded-tr-sm" : "bg-white border text-zinc-800 rounded-2xl rounded-tl-sm"
                                     )}>
-                                        {msg.content}
-                                        <div className={cn("text-[9px] mt-1 text-right opacity-70", isMe ? "text-blue-100" : "text-zinc-400")}>
-                                            {new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                        </div>
+                                            {msg.content}
+                                            <div className={cn("text-[9px] mt-1 text-right opacity-70", isMe ? "text-blue-100" : "text-zinc-400")}>
+                                                {new Date(msg.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                            </div>
                                     </div>
                                 )
                             )}

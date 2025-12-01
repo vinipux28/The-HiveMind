@@ -34,7 +34,7 @@ export async function sendMessage(receiverId: string, content: string, attachmen
     }
 }
 
-export async function getUsersToChatWith() {
+export async function getUsersToChatWith(specificUsername?: string) {
     const session = await auth()
     if (!session?.user?.email) return []
 
@@ -45,17 +45,44 @@ export async function getUsersToChatWith() {
 
     if (!currentUser) return []
 
-    return await prisma.user.findMany({
+    // 1. Base Query: Get all other users (In a real app, this might be 'friends' or 'recent chats')
+    const users = await prisma.user.findMany({
         where: {
             id: { not: currentUser.id }
         },
         select: {
             id: true,
             name: true,
+            username: true,
             image: true,
             email: true
-        }
+        },
+        take: 50 // Optional limit
     })
+
+    // 2. If a specific user is requested via URL, ensure they are in the list
+    if (specificUsername) {
+        const targetUser = await prisma.user.findUnique({
+            where: { username: specificUsername },
+            select: {
+                id: true,
+                name: true,
+                username: true,
+                image: true,
+                email: true
+            }
+        })
+
+        // If found and not already in the list (and not self), add to top
+        if (targetUser && targetUser.id !== currentUser.id) {
+            const alreadyExists = users.some(u => u.id === targetUser.id)
+            if (!alreadyExists) {
+                users.unshift(targetUser) 
+            }
+        }
+    }
+
+    return users
 }
 
 export async function getMessages(otherUserId: string) {

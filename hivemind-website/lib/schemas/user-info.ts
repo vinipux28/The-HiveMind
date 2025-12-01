@@ -1,10 +1,16 @@
 import { z } from "zod"
 
 export const userInfoSchema = z.object({
+  // ADDED: Identity fields for OAuth users
+  username: z.string()
+    .min(3, "Username must be at least 3 characters")
+    .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores")
+    .optional(),
+  name: z.string().min(1, "Name is required").optional(),
+
   // Bio & Identity
   bio: z.string().max(500, "Bio must be less than 500 characters").optional(),
   
-  // CHANGED: Removed .transform(). Keep as string for the UI input.
   interests: z.string().optional(), 
 
   // Demographics

@@ -19,11 +19,9 @@ import {
   Trash2, Plus, ArrowLeft, Loader2, ChevronRight, Pencil 
 } from "lucide-react"
 
-// --- IMPORT THE VERIFIER COMPONENT ---
 import { TaskVerifier } from "@/components/game/task-verifier"
 
 // --- TYPES ---
-// Updated Task type to include isCompleted
 type Task = { id: string; content: string; isCompleted: boolean } 
 type Quest = { id: string; title: string; description: string | null; difficulty: string; tasks: Task[] }
 type Milestone = { id: string; title: string; description: string | null; quests: Quest[] }
@@ -109,7 +107,8 @@ export function GoalManager({ milestones, children }: { milestones: Milestone[],
             </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      {/* Increased max-width to 600px to accommodate the AI Verifier button better */}
+      <DialogContent className="sm:max-w-[600px]">
         {renderContent()}
       </DialogContent>
     </Dialog>
@@ -363,31 +362,38 @@ function TaskListView({ tasks, questTitle, onEdit, onCreate, onBack }: TaskListP
       <ScrollArea className="h-[300px] pr-4">
         <div className="space-y-2">
           {tasks.map((t) => (
-            <div key={t.id} className="flex items-center gap-2 p-2 bg-zinc-50 rounded-lg group hover:bg-zinc-100 group/task">
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{t.content}</p>
+            // Changed: items-center -> items-start to allow text wrapping
+            <div key={t.id} className="flex items-start gap-2 p-3 bg-zinc-50 rounded-lg group hover:bg-zinc-100 group/task">
+              
+              {/* Text Container - Allowed to wrap */}
+              <div className="flex-1 min-w-0 mr-2 mt-1">
+                {/* Removed 'truncate', added 'break-words' and 'whitespace-normal' */}
+                <p className="font-medium text-sm text-zinc-700 leading-snug break-words whitespace-normal">
+                  {t.content}
+                </p>
               </div>
 
-              {/* INTEGRATED AI VERIFIER */}
-              {/* This replaces manual completion checkboxes */}
-              <TaskVerifier 
-                taskId={t.id} 
-                taskContent={t.content} 
-                isCompleted={t.isCompleted} 
-              />
+              {/* Actions Container - Fixed Width */}
+              <div className="flex items-center gap-1 shrink-0">
+                <TaskVerifier 
+                    taskId={t.id} 
+                    taskContent={t.content} 
+                    isCompleted={t.isCompleted} 
+                />
 
-              <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => onEdit(t)}>
-                <Pencil className="w-3 h-3 text-zinc-500" />
-              </Button>
-              <Button 
-                size="icon" 
-                variant="ghost" 
-                className="h-8 w-8 shrink-0 hover:text-red-600" 
-                disabled={isPending} 
-                onClick={() => { if(confirm('Delete?')) startTransition(() => deleteTask(t.id)) }}
-              >
-                <Trash2 className="w-3 h-3" />
-              </Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onEdit(t)}>
+                    <Pencil className="w-3 h-3 text-zinc-500" />
+                </Button>
+                <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="h-8 w-8 hover:text-red-600" 
+                    disabled={isPending} 
+                    onClick={() => { if(confirm('Delete?')) startTransition(() => deleteTask(t.id)) }}
+                >
+                    <Trash2 className="w-3 h-3" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>

@@ -13,7 +13,7 @@ export default async function OnboardingPage() {
     const user = await prisma.user.findUnique({
         where: { email: session.user.email }
     })
-    if (user?.age) {
+    if (user?.dateOfBirth) {
         redirect("/dashboard")
     }
 

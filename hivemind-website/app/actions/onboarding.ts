@@ -21,26 +21,36 @@ export async function submitOnboarding(data: UserInfoValues) {
     return { error: "Invalid data submitted." }
   }
 
-  // Destructure fields that need manual transformation
-  const { dateOfBirth, interests, ...otherData } = validatedFields.data
+  // Destructure fields that need manual transformation or specific handling
+  const { dateOfBirth, interests, username, name, ...otherData } = validatedFields.data
+
+  // Prepare the update object
+  const updateData: any = {
+    ...otherData,
+    dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+    interests: interests 
+      ? interests.split(',').map(s => s.trim()).filter(Boolean) 
+      : [],
+  }
+
+  // Only attempt to update username/name if they are provided (prevent overwriting with empty if optional)
+  if (username) updateData.username = username
+  if (name) updateData.name = name
 
   try {
     await prisma.user.update({
       where: { email: session.user.email },
-      data: {
-        ...otherData,
-        // 1. Convert string date to Date object
-        dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
-        
-        // 2. Convert comma-separated string to Array of strings
-        interests: interests 
-          ? interests.split(',').map(s => s.trim()).filter(Boolean) 
-          : [],
-      },
+      data: updateData,
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error("DB Update Error:", error)
-    return { error: "Failed to save profile." }
+    
+    // Check for Unique Constraint Violation (P2002) for username
+    if (error.code === 'P2002' && error.meta?.target?.includes('username')) {
+      return { error: "Username is already taken. Please choose another one." }
+    }
+
+    return { error: "Failed to save profile. Please try again." }
   }
 
   revalidatePath("/dashboard")

@@ -24,7 +24,12 @@ const steps = [
   { id: 5, title: "Work & Wealth", description: "Career and financial status" },
 ]
 
-export function UserInfoWizard() {
+function formatDateForInput(date: Date | null | undefined): string {
+  if (!date) return ""
+  return new Date(date).toISOString().split('T')[0]
+}
+
+export function UserInfoWizard({ initialData }: { initialData?: any }) {
   const [currentStep, setCurrentStep] = useState(0)
   const [previousStep, setPreviousStep] = useState(0)
   const [isPending, startTransition] = useTransition()
@@ -32,15 +37,31 @@ export function UserInfoWizard() {
   const form = useForm<UserInfoValues>({
     resolver: zodResolver(userInfoSchema),
     defaultValues: {
-      dateOfBirth: "",
-      gender: "",
-      bio: "",
-      interests: "",
-      householdSize: 1,
-      childrenCount: 0,
-      mentalHealthScore: 5,
-      incomePercentile: 50,
-      childhoodMathSkill: 5,
+      // ADDED: Identity fields
+      username: initialData?.username || "",
+      name: initialData?.name || "",
+      
+      bio: initialData?.bio || "",
+      interests: initialData?.interests ? initialData.interests.join(", ") : "",
+      dateOfBirth: formatDateForInput(initialData?.dateOfBirth), 
+      gender: initialData?.gender || "",
+      education: initialData?.education || "",
+      maritalStatus: initialData?.maritalStatus || "",
+      
+      householdSize: initialData?.householdSize || 1,
+      childrenCount: initialData?.childrenCount || 0,
+      socialSupportLevel: initialData?.socialSupportLevel || "medium",
+      
+      childhoodMathSkill: initialData?.childhoodMathSkill || 5,
+      booksInHome: initialData?.booksInHome || "11-25",
+      
+      bmi: initialData?.bmi || undefined,
+      smoking: initialData?.smoking || "never",
+      alcoholConsumption: initialData?.alcoholConsumption || "none",
+      mentalHealthScore: initialData?.mentalHealthScore || 5,
+      
+      employmentStatus: initialData?.employmentStatus || "employed",
+      incomePercentile: initialData?.incomePercentile || 50,
     },
     mode: "onChange", 
   })
@@ -78,7 +99,12 @@ export function UserInfoWizard() {
     startTransition(async () => {
       const result = await submitOnboarding(data)
       if (result?.error) {
-        alert(`Error: ${result.error}`)
+        // If specific field error (like username taken), set it in the form
+        if (result.error.toLowerCase().includes("username")) {
+            form.setError("username", { type: "manual", message: result.error })
+        } else {
+            alert(`Error: ${result.error}`)
+        }
       } else {
         console.log("Profile updated successfully")
       }
@@ -86,7 +112,7 @@ export function UserInfoWizard() {
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-4">
+    <div className="w-full max-w-2xl mx-auto">
       <div className="mb-8 space-y-2">
         <div className="flex justify-between text-sm font-medium text-zinc-500">
           <span>Step {currentStep + 1} of {steps.length}</span>
@@ -97,13 +123,13 @@ export function UserInfoWizard() {
 
       <Form {...form}>
         <form onSubmit={(e) => e.preventDefault()}>
-          <Card className="border-zinc-200 shadow-xl overflow-hidden min-h-[550px] flex flex-col justify-between">
+          <Card className="border-zinc-200 shadow-sm overflow-hidden min-h-[600px] flex flex-col justify-between">
             <CardHeader className="bg-zinc-50 border-b pb-6">
               <CardTitle className="text-2xl">{steps[currentStep].title}</CardTitle>
               <CardDescription>{steps[currentStep].description}</CardDescription>
             </CardHeader>
 
-            <CardContent className="pt-8 flex-grow relative overflow-hidden">
+            <CardContent className="pt-8 flex-grow relative overflow-hidden bg-white">
               <AnimatePresence custom={direction} mode="wait">
                 <motion.div
                   key={currentStep}
@@ -134,7 +160,7 @@ export function UserInfoWizard() {
                 disabled={isPending}
                 className="w-32 bg-zinc-900 text-white hover:bg-zinc-800"
               >
-                {isPending ? "Saving..." : (currentStep === steps.length - 1 ? "Finish" : "Next")}
+                {isPending ? "Saving..." : (currentStep === steps.length - 1 ? "Save Profile" : "Next")}
               </Button>
             </CardFooter>
           </Card>
@@ -146,7 +172,7 @@ export function UserInfoWizard() {
 
 function getFieldsForStep(step: number): string[] {
   switch (step) {
-    case 0: return ["dateOfBirth", "gender", "bio", "interests", "education", "maritalStatus"]
+    case 0: return ["username", "name", "dateOfBirth", "gender", "bio", "interests", "education", "maritalStatus"]
     case 1: return ["householdSize", "childrenCount", "socialSupportLevel"]
     case 2: return ["childhoodMathSkill", "booksInHome"]
     case 3: return ["bmi", "smoking", "alcoholConsumption", "mentalHealthScore"]
@@ -157,10 +183,33 @@ function getFieldsForStep(step: number): string[] {
 
 function renderStepContent(step: number, form: any) {
   switch (step) {
-    case 0: // Demographics + Bio + Interests
+    case 0: // Demographics + Bio + Interests + Identity
       return (
         <div className="space-y-6">
-          {/* Bio Section */}
+          {/* Identity Section - Crucial for new OAuth users */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-zinc-50 rounded-lg border border-zinc-100">
+            <FormField control={form.control} name="username" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Username <span className="text-red-500">*</span></FormLabel>
+                <FormControl>
+                  <Input placeholder="username" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormDescription className="text-[10px]">Unique handle for your profile.</FormDescription>
+                <FormMessage />
+              </FormItem>
+            )} />
+
+            <FormField control={form.control} name="name" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Display Name <span className="text-red-500">*</span></FormLabel>
+                <FormControl>
+                  <Input placeholder="John Doe" {...field} value={field.value ?? ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+          </div>
+
           <FormField control={form.control} name="bio" render={({ field }) => (
             <FormItem>
               <FormLabel>Short Bio</FormLabel>
@@ -169,6 +218,7 @@ function renderStepContent(step: number, form: any) {
                   placeholder="Tell us a bit about yourself..." 
                   className="resize-none h-20" 
                   {...field} 
+                  value={field.value ?? ""}
                 />
               </FormControl>
               <FormMessage />
@@ -180,7 +230,7 @@ function renderStepContent(step: number, form: any) {
               <FormItem>
                 <FormLabel>Date of Birth</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} />
+                  <Input type="date" {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -207,7 +257,7 @@ function renderStepContent(step: number, form: any) {
             <FormItem>
               <FormLabel>Interests & Hobbies</FormLabel>
               <FormControl>
-                <Input placeholder="Hiking, Coding, Cooking (comma separated)" {...field} />
+                <Input placeholder="Hiking, Coding, Cooking (comma separated)" {...field} value={field.value ?? ""} />
               </FormControl>
               <FormDescription>Separate multiple interests with commas.</FormDescription>
               <FormMessage />
@@ -250,6 +300,7 @@ function renderStepContent(step: number, form: any) {
         </div>
       )
 
+    // ... (Cases 1, 2, 3, 4 remain exactly the same as previous implementation)
     case 1: // Household
       return (
         <div className="space-y-6">
@@ -258,7 +309,7 @@ function renderStepContent(step: number, form: any) {
                 <FormItem>
                 <FormLabel>Household Size</FormLabel>
                 <FormControl>
-                    <Input type="number" min={1} {...field} onChange={e => field.onChange(+e.target.value)} />
+                    <Input type="number" min={1} {...field} onChange={e => field.onChange(+e.target.value)} value={field.value ?? 1} />
                 </FormControl>
                 <FormDescription>Total people including yourself.</FormDescription>
                 <FormMessage />
@@ -269,7 +320,7 @@ function renderStepContent(step: number, form: any) {
                 <FormItem>
                 <FormLabel>Children</FormLabel>
                 <FormControl>
-                    <Input type="number" min={0} {...field} onChange={e => field.onChange(+e.target.value)} />
+                    <Input type="number" min={0} {...field} onChange={e => field.onChange(+e.target.value)} value={field.value ?? 0} />
                 </FormControl>
                 <FormDescription>Number of children you support.</FormDescription>
                 <FormMessage />
@@ -374,7 +425,7 @@ function renderStepContent(step: number, form: any) {
                 <FormItem>
                 <FormLabel>BMI (Body Mass Index)</FormLabel>
                 <FormControl>
-                    <Input type="number" step="0.1" placeholder="e.g. 24.5" {...field} onChange={e => field.onChange(+e.target.value)} />
+                    <Input type="number" step="0.1" placeholder="e.g. 24.5" {...field} onChange={e => field.onChange(+e.target.value)} value={field.value ?? ""} />
                 </FormControl>
                 <FormDescription>Leave blank if unknown.</FormDescription>
                 <FormMessage />
@@ -420,7 +471,7 @@ function renderStepContent(step: number, form: any) {
                 <FormItem>
                 <FormLabel className="text-lg">Income Percentile (0-100)</FormLabel>
                 <FormControl>
-                    <Input type="number" min={0} max={100} {...field} onChange={e => field.onChange(+e.target.value)} />
+                    <Input type="number" min={0} max={100} {...field} onChange={e => field.onChange(+e.target.value)} value={field.value ?? 50} />
                 </FormControl>
                 <FormDescription>
                     0 = Lowest Income, 100 = Highest Income in your area.
