@@ -1,22 +1,46 @@
 # 🧠 HiveMind: Connect. Conquer. Thrive.
 
-## 🌟 Project Overview
+![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+![PostgreSQL](https://img.shields.io/badge/postgresql-4169e1?style=for-the-badge&logo=postgresql&logoColor=white)
+![Status](https://img.shields.io/badge/status-active-success.svg?style=for-the-badge)
 
-**HiveMind** is a unique, supportive social media platform designed to connect individuals facing similar life challenges. It moves beyond passive communication by integrating an **AI companion** that actively guides users through their personal struggles, transforming difficulties into achievable goals.
+**HiveMind** is an AI-powered "Life RPG" and social platform designed to turn personal struggles into actionable, gamified quests. By combining peer-to-peer support with an intelligent AI companion, HiveMind transforms the isolation of self-improvement into a collaborative, engaging journey.
 
-Our mission is to foster a community where shared experience becomes a catalyst for **positive change**, turning isolation into collaboration.
+---
+
+## 🎥 Platform Demo
+
+See HiveMind in action. Watch as the AI generates a personalized roadmap, creates quests, and verifies real-world activities using computer vision.
+
+<video src="demoaudiodadas.mp4" controls="controls" width="100%">
+  Your browser does not support the video tag.
+</video>
+
+---
+
+## 🌟 Mission Statement
+
+Our mission is to foster a community where shared experience becomes a catalyst for **positive change**. We move beyond passive communication by integrating an active **AI Agent** that guides users through their personal battles, verifying their progress and connecting them with the right people at the right time.
 
 ---
 
 ## 🔑 Key Features
 
-* **Peer-to-Peer Support Chats:** Connect with other users who share the same or similar life problems in a private, supportive environment.
-* **AI Companion & Quests:** An integrated AI chatbot provides personalized guidance by:
-    * Issuing **Quests** (small, actionable steps) and **Milestones** (larger goals) relevant to the user's specific challenges.
-    * Offering tailored **Suggestions for Contact** with other users based on high-similarity profiles, facilitating meaningful connections.
-* **Proof-of-Completion System:** Quests are verified by the user uploading **image or video proof**, which is then analyzed by the AI to ensure completion.
-* **Point & Gamification:** A **Point System** rewards users with points for successfully completing quests and milestones, encouraging progress, persistence, and engagement.
+### 🤖 AI Life Coach & Quest Generation
+The heart of HiveMind is an intelligent agent that analyzes user context to generate specific, manageable paths forward.
+* **Dynamic Roadmaps:** Breaks down overwhelming life goals into 4-week actionable plans.
+* **Custom Quests:** Generates specific daily tasks ("Quests") and larger goals ("Milestones").
+* **Smart Matching:** Suggests connections with other users who have high profile similarity, ensuring relevance in peer support.
 
+### 📸 AI Verification Engine ("The Judge")
+We solve the problem of accountability through multimodal AI.
+* **Proof-of-Completion:** Users upload images or videos to prove they completed a task (e.g., a photo of a run tracking app).
+* **Automated Validation:** The AI analyzes the media content to verify the task was actually completed before awarding XP.
+
+### 🎮 Gamification & Progression
+* **XP & Leveling:** Users earn Experience Points (XP) for every verified action, leveling up their profile.
+* **Community Leaderboards:** Track progress against friends and the wider community.
 ---
 
 ## 🛠 Prerequisites
