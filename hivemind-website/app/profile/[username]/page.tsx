@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { FollowButton } from "@/components/follow-button"
 import { Badge } from "@/components/ui/badge"
-import { Trophy, Calendar, Map, Users, MessageSquare } from "lucide-react" // <--- Import MessageSquare
+import { Trophy, Calendar, Map, Users, MessageSquare, MapPin, Briefcase, BookOpen } from "lucide-react" // <--- Import MessageSquare
 
 // Next.js 15: params is a Promise
 export default async function PublicProfilePage(props: { params: Promise<{ username: string }> }) {
@@ -82,17 +82,24 @@ export default async function PublicProfilePage(props: { params: Promise<{ usern
             </div>
 
             <div>
-                <h1 className="text-3xl font-bold text-zinc-900">{user.name}</h1>
-                <p className="text-zinc-500 font-medium">Level {user.level} Explorer</p>
+              <h1 className="text-3xl font-bold text-zinc-900">{user.name}</h1>
+              <p className="text-sm text-zinc-400">@{user.username}</p>
+              <p className="text-zinc-500 font-medium">Level {user.level} Explorer</p>
                 
-                <div className="flex gap-4 mt-4 text-sm text-zinc-600">
-                    <span className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" /> Joined {new Date(user.createdAt).getFullYear()}
-                    </span>
-                    <span className="flex items-center gap-1">
-                        <Users className="w-4 h-4" /> {user._count.followedBy} Followers
-                    </span>
-                </div>
+              {/* Header small details */}
+              <div className="flex gap-4 mt-4 text-sm text-zinc-600">
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-4 h-4" /> Joined {new Date(user.createdAt).getFullYear()}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Users className="w-4 h-4" /> {user._count.followedBy} Followers
+                </span>
+                {user.location && (
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-4 h-4" /> {user.location}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </Card>
@@ -104,6 +111,72 @@ export default async function PublicProfilePage(props: { params: Promise<{ usern
             <StatCard label="Active Goals" value={user._count.milestones} icon={<Map className="text-blue-500" />} />
             <StatCard label="Following" value={user._count.following} icon={<Users className="text-purple-500" />} />
         </div>
+
+        {/* About / Details */}
+        <Card className="border-zinc-200 shadow-sm">
+          <CardHeader>
+            <h3 className="text-lg font-bold flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-blue-500" /> About
+            </h3>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Bio */}
+              {user.bio ? (
+                <p className="text-sm text-zinc-700">{user.bio}</p>
+              ) : (
+                <p className="text-sm text-zinc-400 italic">No bio provided.</p>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {user.dateOfBirth && (
+                  <div className="flex items-center gap-2 text-sm text-zinc-600">
+                      <Calendar className="w-4 h-4" /> Age {getAgeFromDOB(user.dateOfBirth)}
+                  </div>
+                )}
+
+                {user.education && (
+                  <div className="flex items-center gap-2 text-sm text-zinc-600">
+                      <BookOpen className="w-4 h-4" /> {formatEducation(user.education)}
+                  </div>
+                )}
+
+                {user.employmentStatus && (
+                  <div className="flex items-center gap-2 text-sm text-zinc-600">
+                      <Briefcase className="w-4 h-4" /> {formatEmployment(user.employmentStatus)}
+                  </div>
+                )}
+
+                {user.householdSize !== null && user.householdSize !== undefined && (
+                  <div className="flex items-center gap-2 text-sm text-zinc-600">
+                      <Users className="w-4 h-4" /> Household: {user.householdSize}
+                  </div>
+                )}
+              </div>
+
+              {/* Interests list */}
+              {user.interests && user.interests.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {user.interests.map((interest: string) => (
+                      <Badge key={interest} className="bg-zinc-50 text-zinc-700 border-zinc-100">{interest}</Badge>
+                    ))}
+                  </div>
+              )}
+
+              {/* Show more sensitive info only to self */}
+              {isOwnProfile && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t">
+                  {user.bmi !== null && user.bmi !== undefined && (
+                    <div className="text-sm text-zinc-600">BMI: {user.bmi}</div>
+                  )}
+                  {user.mentalHealthScore !== null && user.mentalHealthScore !== undefined && (
+                    <div className="text-sm text-zinc-600">Mental Health: {user.mentalHealthScore}/10</div>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Recent Achievements (Trophy Case) */}
         <Card className="border-zinc-200 shadow-sm">
@@ -144,4 +217,39 @@ function StatCard({ label, value, icon }: any) {
             <span className="text-xs font-bold uppercase tracking-wide text-zinc-400">{label}</span>
         </Card>
     )
+}
+
+// Small helpers
+function getAgeFromDOB(dob: Date | string) {
+  try {
+    const birth = new Date(dob)
+    const now = new Date()
+    let age = now.getFullYear() - birth.getFullYear()
+    const m = now.getMonth() - birth.getMonth()
+    if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) age--
+    return age
+  } catch (e) {
+    return null
+  }
+}
+
+function formatEducation(education?: string) {
+  switch (education) {
+    case 'high_school': return "High School"
+    case 'bachelors': return "Bachelor's"
+    case 'masters': return "Master's"
+    case 'phd': return "PhD"
+    default: return education || "—"
+  }
+}
+
+function formatEmployment(status?: string) {
+  switch (status) {
+    case 'employed': return "Employed full-time"
+    case 'part_time': return "Part-time"
+    case 'self_employed': return "Self-employed"
+    case 'retired': return "Retired"
+    case 'unemployed': return "Unemployed"
+    default: return status || "—"
+  }
 }

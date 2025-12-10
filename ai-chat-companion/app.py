@@ -14,10 +14,10 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, field_validator # Changed: Added field_validator
 
 try:
-    import google.generativeai as genai
+    from groq import Groq
 except ImportError:
-    genai = None
-    print("google-generativeai not installed. AI features disabled.")
+    Groq = None
+    print("groq not installed. AI features disabled.")
 
 # --- 1. SERVICE CONFIGURATION ---
 # Trigger reload
@@ -247,27 +247,17 @@ def load_dataset():
 async def startup_event():
     load_dataset()
 
-# --- 3. GOOGLE GEMINI CONFIGURATION ---
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-MODEL = None
-if genai and GEMINI_API_KEY:
+# --- 3. GROQ CONFIGURATION ---
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
+groq_client = None
+if Groq and GROQ_API_KEY:
     try:
-        genai.configure(api_key=GEMINI_API_KEY)
-        generation_config = {
-            "temperature": 0.7,
-            # Increased to allow larger JSON responses / analyses
-            "max_output_tokens": 10000,
-            "response_mime_type": "application/json",
-        }
-        MODEL = genai.GenerativeModel(
-            model_name="gemini-2.0-flash",
-            generation_config=generation_config,
-        )
-        print("Gemini model initialized.")
+        groq_client = Groq(api_key=GROQ_API_KEY)
+        print("Groq client initialized.")
     except Exception as e:
-        print(f"Gemini init failed: {e}")
+        print(f"Groq init failed: {e}")
 else:
-    print("GEMINI_API_KEY not set or library missing. AI feedback will fallback.")
+    print("GROQ_API_KEY not set or groq SDK missing. AI feedback will fallback.")
 
 # --- 4. DATA MODELS ---
 class TaskModel(BaseModel):
@@ -336,7 +326,7 @@ def format_sse(data: str) -> str:
 
 # --- 6. AI FEEDBACK GENERATION ---
 async def generate_feedback_stream(agent: dict, relevant_matches: list):
-    if not MODEL:
+    if not groq_client:
         yield format_sse(json.dumps({"error": "AI model unavailable"}))
         yield format_sse("[DONE]")
         return
@@ -424,16 +414,46 @@ async def generate_feedback_stream(agent: dict, relevant_matches: list):
     }}
     """
     try:
-        # Stream the response chunk by chunk
-        response = await MODEL.generate_content_async(prompt, stream=True)
-        
-        async for chunk in response:
-            if chunk.text:
-                # Send raw text chunks of the JSON
-                yield format_sse(json.dumps({"chunk": chunk.text}))
-                # No sleep needed with async iterator, but keeping a tiny yield doesn't hurt
-                await asyncio.sleep(0) 
-        
+        # Groq Python SDK used in other services in this repo uses sync calls.
+        # To avoid blocking the event loop, call the API inside a thread.
+        messages = [
+            {"role": "user", "content": [ {"type": "text", "text": prompt} ] }
+        ]
+
+        def _call_groq():
+            return groq_client.chat.completions.create(
+                model="meta-llama/llama-4-scout-17b-16e-instruct",
+                messages=messages,
+                response_format={"type": "json_object"},
+                max_completion_tokens=5000,
+            )
+
+        completion = await asyncio.to_thread(_call_groq)
+        # Extract content text (content can be list of parts or raw string)
+        text = None
+        try:
+            content = completion.choices[0].message.content
+            if isinstance(content, list):
+                # Join text parts
+                text = "".join([p.get("text", "") for p in content if isinstance(p, dict)])
+            else:
+                text = str(content)
+        except Exception:
+            # Fallback: convert whole completion to string
+            text = str(completion)
+
+        if not text:
+            yield format_sse(json.dumps({"error": "Empty AI response"}))
+            yield format_sse("[DONE]")
+            return
+
+        # Chunk the response into manageable pieces for SSE framed streaming
+        chunk_size = 200
+        for i in range(0, len(text), chunk_size):
+            chunk = text[i:i+chunk_size]
+            yield format_sse(json.dumps({"chunk": chunk}))
+            await asyncio.sleep(0)
+
         yield format_sse("[DONE]")
         
     except Exception as e:
@@ -478,7 +498,7 @@ async def milestones_stream(payload: MilestoneRequest):
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "model_ready": bool(MODEL)}
+    return {"status": "ok", "model_ready": bool(groq_client)}
 
 @app.post("/api/upload-dataset")
 async def upload_dataset(file: UploadFile = File(...)):

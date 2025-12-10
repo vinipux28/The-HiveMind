@@ -36,7 +36,7 @@ export async function register(prevState: any, formData: FormData) {
         await signIn("credentials", {
             email,
             password,
-            redirectTo: "/dashboard",
+            redirectTo: "/onboarding",
         })
 
         return { success: "User created!" }
